@@ -54,15 +54,19 @@ int uthread_spawn (thread_entry_point entry_point);
  *
  * @return The function returns 0 if the thread was successfully terminated and -1 otherwise.
  * If a thread terminates
- * itself or the main thread is terminated, the function does not return.
+ * itself or the main thread is terminated,
+ * the function does not return.
 */
 int uthread_terminate (int tid);
 
 /**
  * @brief Blocks the thread with ID tid. The thread may be resumed later using uthread_resume.
  *
- * If no thread with ID tid exists it is considered as an error. In addition, it is an error to try blocking the
- * main thread (tid == 0). If a thread blocks itself, a scheduling decision should be made. Blocking a thread in
+ * If no thread with ID tid exists it is considered as an error.
+ * In addition, it is an error to try blocking the
+ * main thread (tid == 0).
+ * If a thread blocks itself, a scheduling decision should be made.
+ * Blocking a thread in
  * BLOCKED state has no effect and is not considered an error.
  *
  * @return On success, return 0. On failure, return -1.
@@ -72,7 +76,8 @@ int uthread_block (int tid);
 /**
  * @brief Resumes a blocked thread with ID tid and moves it to the READY state.
  *
- * Resuming a thread in a RUNNING or READY state has no effect and is not considered as an error. If no thread with
+ * Resuming a thread in a RUNNING or READY state has no effect and is not considered
+ * as an error. If no thread with
  * ID tid exists it is considered an error.
  *
  * @return On success, return 0. On failure, return -1.

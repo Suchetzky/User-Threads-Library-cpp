@@ -84,7 +84,22 @@ int uthread_spawn (thread_entry_point entry_point)
 
 int release_all ()
 {
-
+  for (auto thread: _used_ids)
+    {
+      if (thread != nullptr)
+        delete thread;
+      thread = nullptr;
+    }
+  for (auto thread: _READY_threads_list)
+    {
+      thread = nullptr;
+    }
+  for (auto thread: _BLOCKED_threads_list)
+    {
+      thread = nullptr;
+    }
+  _RUNNING_thread = nullptr;
+  return 0;
 }
 
 int release_thread (threadStruct *thread)
@@ -94,9 +109,9 @@ int release_thread (threadStruct *thread)
       case READY:
         _READY_threads_list.remove (thread);
       case RUNNING:
-      //
+        _RUNNING_thread = nullptr;
       case BLOCK:
-      //
+        _BLOCKED_threads_list.remove (thread);
     }
   _used_ids[thread->ID] = nullptr;
   delete (thread);
@@ -112,33 +127,34 @@ int uthread_terminate (int tid)
     }
   if (tid == 0)
     {
-      //REALESE ALL FUNCTION
       release_all ();
       ::exit (0);
     }
-  for (auto thread: _READY_threads_list)
-    {
-      if (thread->ID == tid)
-        {
-          _READY_threads_list.remove (thread);
-        }
-    }
-  delete (_used_ids[tid]);
-  _used_ids[tid] = nullptr;
+  release_thread (_used_ids[tid]);
 
   return 0;
-  // TODO: check what to do when "If a thread terminates itself or the main
-  //  thread is terminated, the function does not return."
+
 }
 
 int uthread_block (int tid)
 {
-  if (_used_ids[tid] == nullptr || tid == 0)
+  if (tid < 0 || tid > 104 || _used_ids[tid] == nullptr)
     {
       std::cerr << "thread library error: ID doesn't exists.\n";
       return -1;
     }
+  if (tid == 0)
+    {
+      std::cerr << "thread library error: Try to block main thread.\n";
+      return -1;
+    }
+  if (_used_ids[tid]->_state != BLOCK)
+    {
+      if (_used_ids[tid]->_state == RUNNING)
+        {
 
+        }
+    }
   return 0;
 }
 
