@@ -4,6 +4,7 @@
 #include "uthreads.h"
 #include <iostream>
 #include <list>
+#include <queue>
 #include <algorithm>
 using namespace std;
 
@@ -24,9 +25,10 @@ typedef struct
 } threadStruct;
 
 list<threadStruct *> _READY_threads_list;
+queue<threadStruct*> _ready_threads_queue;
 list<threadStruct *> _BLOCKED_threads_list;
 threadStruct *_RUNNING_thread;
-threadStruct *_used_ids[105];
+threadStruct *_used_ids[MAX_THREAD_NUM + 2];
 int _cur_quantum_usecs;
 
 //
@@ -42,7 +44,7 @@ int uthread_init (int quantum_usecs)
 
   _cur_quantum_usecs = quantum_usecs;
 
-  for (int i = 0; i < 105; i++)
+  for (int i = 0; i < MAX_THREAD_NUM + 2; i++)
     {
       _used_ids[i] = nullptr;
     }
@@ -120,7 +122,7 @@ int release_thread (threadStruct *thread)
 
 int uthread_terminate (int tid)
 {
-  if (tid < 0 || tid > 104 || _used_ids[tid] == nullptr)
+  if (tid < 0 || tid > MAX_THREAD_NUM + 1 || _used_ids[tid] == nullptr)
     {
       std::cerr << "thread library error: ID doesn't exists.\n";
       return -1;
@@ -138,7 +140,7 @@ int uthread_terminate (int tid)
 
 int uthread_block (int tid)
 {
-  if (tid < 0 || tid > 104 || _used_ids[tid] == nullptr)
+  if (tid < 0 || tid > MAX_THREAD_NUM + 1 || _used_ids[tid] == nullptr)
     {
       std::cerr << "thread library error: ID doesn't exists.\n";
       return -1;
