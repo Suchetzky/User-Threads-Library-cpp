@@ -13,32 +13,94 @@ ANSWERS:
 Assigment 1:
 
 1.
-	a.1
-		int sigsetjmp(sigjmp_buf env, int savemask) - This function saves the current
-		context of the program, saves the current stack environment including, optionally,
-		the current signal mask.
-		The stack environment and signal mask saved by sigsetjmp() can subsequently
-		be restored by siglongjmp().
+ a.1
+int sigsetjmp(sigjmp_buf env, int savemask) - This function saves the current
+context of the program, saves the current stack environment including, optionally,
+the current signal mask.
+The stack environment and signal mask saved by sigsetjmp() can subsequently
+be restored by siglongjmp().
 
-		return value:
-		Returns 0 when it is invoked to save the stack environment and signal mask.
+return value:
+If the return is from a successful direct invocation, sigsetjmp() returns 0.
+If the return is from a call to siglongjmp(), sigsetjmp() returns a non-zero value.
 
-		sigsetjmp() returns the value val, specified on siglongjmp() (or 1 if the value of val is zero),
-		when siglongjmp() causes control to be transferred to the place in the user's
-		program where sigsetjmp() was issued.
-
-	a.2 
-		void siglongjmp( sigjmp_buf env, int val ) - The siglongjmp() function restores
-		the stack environment previously saved in env by sigsetjmp().
-		siglongjmp() also provides the option to restore the signal mask,
-		depending on whether the signal mask was saved by sigsetjmp().
-		
-		return value: none 
+ a.2 
+void siglongjmp( sigjmp_buf env, int val ) - The siglongjmp() function restores
+the stack environment previously saved in env by sigsetjmp().
+siglongjmp() also provides the option to restore the signal mask,
+depending on whether the signal mask was saved by sigsetjmp().
 	
+return value: none 
 
-	b.
-		sigsetjmp can save the current signal mask. 
-		siglongjmp() provides the option to restore the signal mask,
-		depending on whether the signal mask was saved by sigsetjmp(). 
-		
-2. 
+ b.
+sigsetjmp can save the current signal mask. 
+siglongjmp() provides the option to restore the signal mask,
+depending on whether the signal mask was saved by sigsetjmp(). 
+
+
+	
+2.
+One general use of user-level threads is in the implementation of cooperative multitasking,
+where multiple tasks or threads run on a single processor
+by taking turns executing small chunks of code.
+For example, a music player application might use user-level threads to simultaneously play
+different songs and provide a smooth user experience.
+Each song could be played by a separate thread, allowing the music player to switch
+between songs without interrupting the playback of any single song.
+User-level threads are a reasonable choice for this example because they are lightweight
+and do not require kernel-level support.
+User-level threads can be implemented entirely in user space using a thread library,
+which allows for more flexibility and control over thread scheduling and management.
+Additionally, user-level threads can be more efficient in some cases,
+as they do not incur the overhead of kernel context switching.
+
+
+
+3.
+Advantages of Creating a New Process for Each Tab in Google Chrome:
+
+ 1.Enhanced Security: Each tab in Chrome runs in a separate process,
+which provides a higher level of security.
+If one tab encounters an issue or becomes unresponsive,
+it won't affect the other tabs or the entire browser.
+This isolates potential security risks, such as malware or malicious websites,
+to individual processes,
+reducing the risk of spreading across tabs or compromising the entire browser.
+
+ 2.Improved Stability: By isolating each tab in its own process, Chrome can prevent
+a single tab or web page from crashing the entire browser.
+If one tab crashes or experiences a problem, only that specific process is affected,
+while the rest of the tabs and the main browser process remain unaffected,
+resulting in improved stability and reliability.
+
+ 3.Better Performance: Creating a new process for each tab allows for better resource management.
+Each process can have its own allocated memory and computing resources,
+reducing contention for system resources and potential performance bottlenecks.
+This can lead to smoother browsing experiences, faster page loads, and reduced memory usage.
+	
+Disadvantages of Creating a New Process for Each Tab in Google Chrome:
+
+ 1.Higher Overhead: Creating a new process for each tab incurs additional overhead
+in terms of system resources and management.
+Each process has its own overhead in terms of context switching,
+This can impact overall system performance,
+especially on devices with limited processing power.
+
+ 2.Increased Memory Usage: Each process requires its own memory space,
+which can result in higher overall memory usage compared to
+using threads within a single process.
+potentially leading to reduced performance or
+increased system resource usage.
+
+
+4. NEED TO DO
+
+
+
+
+
+5. Real time refers to the actual elapsed time in the physical world,
+   while virtual time refers to the perceived or simulated time in a computer system.
+   An example of this can be a clock in the real world that measures time,
+   versus a clock in a computer game that can simulate a 24-hour day in
+   just a few minutes, like a night sleep in Minecraft.
