@@ -93,12 +93,14 @@ potentially leading to reduced performance or
 increased system resource usage.
 
 
-4. NEED TO DO
+4. The kill command generates a software interrupt (signal) that is sent by 
+the OS to the specified process. The process can handle the signal using a 
+signal handler, and the shell that executed the command receives a notification 
+using the SIGCHLD signal. If the killed process was reading input from the 
+keyboard, the keyboard IRQ may also be involved.
 
 
-
-
-
+   
 5. Real time refers to the actual elapsed time in the physical world,
    while virtual time refers to the perceived or simulated time in a computer system.
    An example of this can be a clock in the real world that measures time,
