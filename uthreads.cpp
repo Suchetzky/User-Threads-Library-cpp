@@ -13,6 +13,8 @@
 #include <sys/time.h>
 using namespace std;
 
+#define TIME_FACTOR 1000000
+
 
 #ifdef __x86_64__
 /* code for 64 bit Intel arch */
@@ -81,7 +83,10 @@ list<threadStruct *> _READY_threads_list;
 threadStruct *_RUNNING_thread;
 threadStruct *_used_ids[MAX_THREAD_NUM + 2];
 int _cur_quantum_usecs;
+int _cur_quantum_secs;
 int _count_quantums;
+struct sigaction sa = {0};
+struct itimerval timer;
 
 int gotit = 0;
 
@@ -106,10 +111,20 @@ void timer_handler(int sig)
     printf("Timer expired\n");
 }
 
-int clock_start ()
+int reset_timer()
 {
-    struct sigaction sa = {0};
-    struct itimerval timer;
+  // reset the current timer to the interval. check if split ti usec
+  // and sec is necessary
+  timer.it_value = timer.it_interval;
+  if (setitimer(ITIMER_VIRTUAL, &timer, NULL))
+    {
+      printf("setitimer error.");
+    }
+}
+
+int start_timer ()
+{
+  // moved timer and sa to be global variables
 
     // Install timer_handler as the signal handler for SIGVTALRM.
     sa.sa_handler = &timer_handler;
@@ -119,11 +134,11 @@ int clock_start ()
     }
 
     // Configure the timer to expire after 1 sec... */
-    timer.it_value.tv_sec = 0;        // first time interval, seconds part
+    timer.it_value.tv_sec = _cur_quantum_secs;        // first time interval, seconds part
     timer.it_value.tv_usec =_cur_quantum_usecs;        // first time interval, microseconds part
 
     // configure the timer to expire every 3 sec after that.
-    timer.it_interval.tv_sec = 0;    // following time intervals, seconds part
+    timer.it_interval.tv_sec = _cur_quantum_secs;    // following time intervals, seconds part
     timer.it_interval.tv_usec = _cur_quantum_usecs;    // following time intervals, microseconds part
 
     // Start a virtual timer. It counts down whenever this process is executing.
@@ -156,7 +171,8 @@ int uthread_init (int quantum_usecs)
       return -1;
     }
 
-  _cur_quantum_usecs = quantum_usecs;
+  _cur_quantum_usecs = quantum_usecs % TIME_FACTOR;
+  _cur_quantum_secs = quantum_usecs / TIME_FACTOR;
 
   for (int i = 0; i < MAX_THREAD_NUM + 2; i++)
     {
@@ -172,7 +188,7 @@ int uthread_init (int quantum_usecs)
 
   _RUNNING_thread = _used_ids[0];
 
-  clock_start();
+  start_timer ();
   // Need to initialize _READY_threads_list ?
     return 0;
 }
