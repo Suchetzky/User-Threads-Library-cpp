@@ -15,7 +15,6 @@ using namespace std;
 
 #define TIME_FACTOR 1000000
 
-
 #ifdef __x86_64__
 /* code for 64 bit Intel arch */
 
@@ -25,14 +24,14 @@ typedef unsigned long address_t;
 
 /* A translation is required when using an address of a variable.
    Use this as a black box in your code. */
-address_t translate_address(address_t addr)
+address_t translate_address (address_t addr)
 {
-    address_t ret;
-    asm volatile("xor    %%fs:0x30,%0\n"
-                 "rol    $0x11,%0\n"
-            : "=g" (ret)
-            : "0" (addr));
-    return ret;
+  address_t ret;
+  asm volatile("xor    %%fs:0x30,%0\n"
+               "rol    $0x11,%0\n"
+      : "=g" (ret)
+      : "0" (addr));
+  return ret;
 }
 
 #else
@@ -75,10 +74,12 @@ typedef struct
     char stack[STACK_SIZE];
     sigjmp_buf env;
     int _num_running_quantums;
+    int sleep_time = 0;
 
 } threadStruct;
 
 list<threadStruct *> _READY_threads_list;
+list<threadStruct *> _SLEEP_threads_list;
 //list<threadStruct *> _BLOCKED_threads_list;
 threadStruct *_RUNNING_thread;
 threadStruct *_used_ids[MAX_THREAD_NUM + 2];
@@ -93,32 +94,54 @@ int gotit = 0;
 //
 int uthread_spawn (thread_entry_point entry_point);
 
-void switch_running();
+void switch_running ();
+void move_next_ready_to_running();
+int uthread_resume (int tid);
 
-int check_tid(int tid)
+int check_tid (int tid)
 {
-    if (tid < 0 || tid > MAX_THREAD_NUM - 1 || _used_ids[tid] == nullptr)
+  if (tid < 0 || tid > MAX_THREAD_NUM - 1 || _used_ids[tid] == nullptr)
     {
-        std::cerr << "thread library error: ID doesn't exists.\n";
-        return -1;
+      std::cerr << "thread library error: ID doesn't exists.\n";
+      return -1;
     }
-    return 0;
+  return 0;
 }
 
-void timer_handler(int sig)
+void lower_1_from_sleep()
 {
-    gotit = 1;
-    printf("Timer expired\n");
+  for (auto thread : _SLEEP_threads_list)
+    {
+      if (thread->sleep_time == 0)
+        {
+          if (thread->_state == READY)
+            {
+              _READY_threads_list.push_back (thread);
+            }
+        }
+        else
+        {
+          thread->sleep_time --;
+        }
+    }
 }
 
-int reset_timer()
+void timer_handler (int sig)
+{
+  gotit = 1;
+  printf ("Timer expired\n");
+  switch_running ();
+  lower_1_from_sleep();
+}
+
+int reset_timer ()
 {
   // reset the current timer to the interval. check if split ti usec
   // and sec is necessary
   timer.it_value = timer.it_interval;
-  if (setitimer(ITIMER_VIRTUAL, &timer, NULL))
+  if (setitimer (ITIMER_VIRTUAL, &timer, NULL))
     {
-      printf("setitimer error.");
+      printf ("setitimer error.");
     }
 }
 
@@ -126,40 +149,44 @@ int start_timer ()
 {
   // moved timer and sa to be global variables
 
-    // Install timer_handler as the signal handler for SIGVTALRM.
-    sa.sa_handler = &timer_handler;
-    if (sigaction(SIGVTALRM, &sa, NULL) < 0)
+  // Install timer_handler as the signal handler for SIGVTALRM.
+  sa.sa_handler = &timer_handler;
+  if (sigaction (SIGVTALRM, &sa, NULL) < 0)
     {
-        printf("sigaction error.");
+      printf ("sigaction error.");
     }
 
-    // Configure the timer to expire after 1 sec... */
-    timer.it_value.tv_sec = _cur_quantum_secs;        // first time interval, seconds part
-    timer.it_value.tv_usec =_cur_quantum_usecs;        // first time interval, microseconds part
+  // Configure the timer to expire after 1 sec... */
+  timer.it_value.tv_sec = _cur_quantum_secs;        // first time interval, seconds part
+  timer.it_value.tv_usec = _cur_quantum_usecs;        // first time interval, microseconds part
 
-    // configure the timer to expire every 3 sec after that.
-    timer.it_interval.tv_sec = _cur_quantum_secs;    // following time intervals, seconds part
-    timer.it_interval.tv_usec = _cur_quantum_usecs;    // following time intervals, microseconds part
+  // configure the timer to expire every 3 sec after that.
+  timer.it_interval.tv_sec = _cur_quantum_secs;    // following time intervals, seconds part
+  timer.it_interval.tv_usec = _cur_quantum_usecs;    // following time intervals, microseconds part
 
-    // Start a virtual timer. It counts down whenever this process is executing.
-    if (setitimer(ITIMER_VIRTUAL, &timer, NULL))
+  // Start a virtual timer. It counts down whenever this process is executing.
+  if (setitimer (ITIMER_VIRTUAL, &timer, NULL))
     {
-        printf("setitimer error.");
+      printf ("setitimer error.");
     }
 
-   for (;;)
-   {
-        if (gotit)
-        {
-            printf("switch to the next running\n");
-            switch_running();
-            gotit = 0;
-        }
-    }
+//  if (gotit)
+//    {
+//      printf ("switch to the next running\n");
+//      switch_running ();
+//      gotit = 0;
+//    }
+
 }
 
-void switch_running() {
+void switch_running ()
+{
+  sigsetjmp (_RUNNING_thread->env, 1);
+  _READY_threads_list.push_back (_RUNNING_thread);
+  _RUNNING_thread->_state = READY;
+  void move_next_ready_to_running();
 
+  // Might need to reset timer every time.
 
 }
 
@@ -184,15 +211,14 @@ int uthread_init (int quantum_usecs)
   _used_ids[0]->ID = 0;
   _used_ids[0]->_entry_point = nullptr;
   _used_ids[0]->_state = RUNNING;
-    sigsetjmp(_used_ids[0]->env, 1);
+  sigsetjmp (_used_ids[0]->env, 1);
 
   _RUNNING_thread = _used_ids[0];
 
   start_timer ();
   // Need to initialize _READY_threads_list ?
-    return 0;
+  return 0;
 }
-
 
 int lowest_id_available ()
 {
@@ -217,12 +243,13 @@ int uthread_spawn (thread_entry_point entry_point)
   _READY_threads_list.push_back (new_thread);
   _used_ids[new_thread->ID]->_state = READY;
 
-    address_t sp = (address_t) new_thread->stack + STACK_SIZE - sizeof(address_t);
-    address_t pc = (address_t) entry_point;
-    sigsetjmp(new_thread->env, 1);
-    (new_thread->env->__jmpbuf)[JB_SP] = translate_address(sp);
-    (new_thread->env->__jmpbuf)[JB_PC] = translate_address(pc);
-    sigemptyset(&new_thread->env->__saved_mask);
+  address_t sp =
+      (address_t) new_thread->stack + STACK_SIZE - sizeof (address_t);
+  address_t pc = (address_t) entry_point;
+  sigsetjmp (new_thread->env, 1);
+  (new_thread->env->__jmpbuf)[JB_SP] = translate_address (sp);
+  (new_thread->env->__jmpbuf)[JB_PC] = translate_address (pc);
+  sigemptyset (&new_thread->env->__saved_mask);
   return new_thread->ID;
 }
 
@@ -255,7 +282,7 @@ int release_thread (threadStruct *thread)
       case RUNNING:
         _RUNNING_thread = nullptr;
       //case BLOCKED:
-        //_BLOCKED_threads_list.remove (thread);
+      //_BLOCKED_threads_list.remove (thread);
     }
   _used_ids[thread->ID] = nullptr;
   delete (thread);
@@ -264,29 +291,51 @@ int release_thread (threadStruct *thread)
 
 int uthread_terminate (int tid)
 {
-  if (tid < 0 || tid >= MAX_THREAD_NUM  || _used_ids[tid] == nullptr)
-    {
-      std::cerr << "thread library error: ID doesn't exists.\n";
-      return -1;
-    }
+  check_tid (tid);
   if (tid == 0)
     {
       release_all ();
       ::exit (0);
     }
-  release_thread (_used_ids[tid]);
+  release_thread(_RUNNING_thread);
+    if (tid == _RUNNING_thread->ID)
+      {
+        reset_timer();
+        move_next_ready_to_running();
+
+        // TODO: return value?
+        //https://moodle2.cs.huji.ac.il/nu22/mod/forum/discuss.php?d=67557
+      }
 
   return 0;
 
 }
 
+void move_next_ready_to_running()
+{
+  _count_quantums ++;
+  _RUNNING_thread = _READY_threads_list.front();
+  _READY_threads_list.pop_front();
+  _RUNNING_thread->_state = RUNNING;
+  _RUNNING_thread->_num_running_quantums +=1;
+  siglongjmp (_used_ids[_RUNNING_thread->ID]->env, 1);
+}
+
+/**
+ * @brief Blocks the thread with ID tid. The thread may be resumed later using uthread_resume.
+ *
+ * If no thread with ID tid exists it is considered as an error.
+ * In addition, it is an error to try blocking the
+ * main thread (tid == 0).
+ * If a thread blocks itself, a scheduling decision should be made.
+ * Blocking a thread in
+ * BLOCKED state has no effect and is not considered an error.
+ *
+ * @return On success, return 0. On failure, return -1.
+*/
 int uthread_block (int tid)
 {
-  if (tid < 0 || tid > MAX_THREAD_NUM - 1 || _used_ids[tid] == nullptr)
-    {
-      std::cerr << "thread library error: ID doesn't exists.\n";
-      return -1;
-    }
+  check_tid (tid);
   if (tid == 0)
     {
       std::cerr << "thread library error: Try to block main thread.\n";
@@ -296,67 +345,98 @@ int uthread_block (int tid)
     {
       if (_used_ids[tid]->_state == RUNNING)
         {
-            sigsetjmp(_used_ids[tid]->env,1);
-            _used_ids[tid]->_state = BLOCKED;
+          sigsetjmp (_RUNNING_thread->env, 1);
+          _used_ids[tid]->_state = BLOCKED;
 
-            // move the next ready to running
-            // inside function that control time
-            _RUNNING_thread = _READY_threads_list.front();
-            _READY_threads_list.pop_front();
-            _RUNNING_thread->_state = RUNNING;
-            siglongjmp(_used_ids[tid]->env,1);
-
+          // move the next ready to running
+          // inside function that control time
+          reset_timer();
+          move_next_ready_to_running();
 
         }
       else if (_used_ids[tid]->_state == READY)
-      {
+        {
           _used_ids[tid]->_state = BLOCKED;
-          _READY_threads_list.remove(_used_ids[tid]);
-      }
+          _READY_threads_list.remove (_used_ids[tid]);
+        }
+    }
+  return 0;
+}
+
+/**
+ * @brief Resumes a blocked thread with ID tid and moves it to the READY state.
+ *
+ * Resuming a thread in a RUNNING or READY state has no effect and is not considered
+ * as an error. If no thread with
+ * ID tid exists it is considered an error.
+ *
+ * @return On success, return 0. On failure, return -1.
+*/
+
+int uthread_resume (int tid)
+{
+  check_tid (tid);
+
+  if (_used_ids[tid]->_state == BLOCKED )
+    {
+      _used_ids[tid]->_state = READY;
+      if (_used_ids[tid]->sleep_time == 0)
+        {
+          _READY_threads_list.push_back (_used_ids[tid]);
+        }
+
     }
   return 0;
 }
 
 
-
-int uthread_resume (int tid)
-{
-    if (tid < 0 || tid > MAX_THREAD_NUM - 1 || _used_ids[tid] == nullptr)
-    {
-        std::cerr << "thread library error: ID doesn't exists.\n";
-        return -1;
-    }
-    if (_used_ids[tid]->_state == BLOCKED)
-    {
-        _used_ids[tid]->_state =READY;
-        _READY_threads_list.push_back(_used_ids[tid]);
-    }
-    return 0;
-}
+/**
+ * @brief Blocks the RUNNING thread for num_quantums quantums.
+ *
+ * Immediately after the RUNNING thread transitions to the BLOCKED state a scheduling decision should be made.
+ * After the sleeping time is over, the thread should go back to the end of the READY queue.
+ * If the thread which was just RUNNING should also be added to the READY queue, or if multiple threads wake up
+ * at the same time, the order in which they're added to the end of the READY queue doesn't matter.
+ * The number of quantums refers to the number of times a new quantum starts, regardless of the reason. Specifically,
+ * the quantum of the thread which has made the call to uthread_sleep isn’t counted.
+ * It is considered an error if the main thread (tid == 0) calls this function.
+ *
+ * @return On success, return 0. On failure, return -1.
+*/
 
 int uthread_sleep (int num_quantums)
 {
+  if (_RUNNING_thread->ID == 0 )
+    {
+      std::cerr << "thread library error: Try to sleep main thread.\n";
+      return -1;
+    }
+  _RUNNING_thread->sleep_time = num_quantums;
+  sigsetjmp (_RUNNING_thread->env, 1);
+  _RUNNING_thread->_state = READY;
+  _SLEEP_threads_list.push_back (_RUNNING_thread);
+  move_next_ready_to_running();
 
 }
 
 int uthread_get_tid ()
 {
-    return _RUNNING_thread->ID;
+  return _RUNNING_thread->ID;
 }
 
-//TODO: raise up
+
 int uthread_get_total_quantums ()
 {
-    return _count_quantums;
+  return _count_quantums;
 }
-//TODO: raise up every time start running
+
 int uthread_get_quantums (int tid)
 {
-    if (check_tid(tid) != 0)
+  if (check_tid (tid) != 0)
     {
-        return -1;
+      return -1;
     }
-    return _used_ids[tid]->_num_running_quantums;
+  return _used_ids[tid]->_num_running_quantums;
 }
 
 
