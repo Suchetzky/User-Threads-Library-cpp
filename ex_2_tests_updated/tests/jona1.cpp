@@ -10,6 +10,16 @@
 #define GRN "\e[32m"
 #define RED "\x1B[31m"
 #define RESET "\x1B[0m"
+#include <queue>
+#include <algorithm>
+#include <stdio.h>
+#include <setjmp.h>
+#include <signal.h>
+#include <unistd.h>
+#include <sys/time.h>
+#include <iostream>
+#include <list>
+using namespace std;
 
 void halt()
 {
@@ -21,7 +31,9 @@ void wait_next_quantum()
 {
     int quantum = uthread_get_quantums(uthread_get_tid());
     while (uthread_get_quantums(uthread_get_tid()) == quantum)
-    {}
+    {
+        //printf("HI 1\n");
+    }
     return;
 }
 

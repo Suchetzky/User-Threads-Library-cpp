@@ -1,3 +1,3 @@
-C:/Users/talsu/Desktop/UNIVERSITY/HUJI/year_2/Smester 2/OS/TalEliaEx2/cmake-build-debug/CMakeFiles/TalEliaOs2.dir
-C:/Users/talsu/Desktop/UNIVERSITY/HUJI/year_2/Smester 2/OS/TalEliaEx2/cmake-build-debug/CMakeFiles/edit_cache.dir
-C:/Users/talsu/Desktop/UNIVERSITY/HUJI/year_2/Smester 2/OS/TalEliaEx2/cmake-build-debug/CMakeFiles/rebuild_cache.dir
+/cs/usr/suchetzky/os/TalEliaOs2/cmake-build-debug/CMakeFiles/TalEliaOs2.dir
+/cs/usr/suchetzky/os/TalEliaOs2/cmake-build-debug/CMakeFiles/edit_cache.dir
+/cs/usr/suchetzky/os/TalEliaOs2/cmake-build-debug/CMakeFiles/rebuild_cache.dir

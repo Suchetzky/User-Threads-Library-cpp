@@ -88,8 +88,8 @@ int _cur_quantum_secs;
 int _count_quantums;
 struct sigaction sa = {0};
 struct itimerval timer;
+sigset_t set;
 
-int gotit = 0;
 
 //
 int uthread_spawn (thread_entry_point entry_point);
@@ -97,6 +97,19 @@ int uthread_spawn (thread_entry_point entry_point);
 void switch_running ();
 void move_next_ready_to_running();
 int uthread_resume (int tid);
+int release_all();
+
+void block_unblock(int signal)
+{
+    // signal is SIG_BLOCK or SIG_UNBLOCK
+    if (sigprocmask(signal,&set, nullptr) == -1)
+    {
+        //TODO check errors !
+        std::cerr << "block unblock problem\n";
+        release_all ();
+        ::exit (0);
+    }
+}
 
 int check_tid (int tid)
 {
@@ -128,10 +141,9 @@ void lower_1_from_sleep()
 
 void timer_handler (int sig)
 {
-  gotit = 1;
-  printf ("Timer expired\n");
   switch_running ();
   lower_1_from_sleep();
+
 }
 
 int reset_timer ()
@@ -170,22 +182,18 @@ int start_timer ()
       printf ("setitimer error.");
     }
 
-//  if (gotit)
-//    {
-//      printf ("switch to the next running\n");
-//      switch_running ();
-//      gotit = 0;
-//    }
 
 }
 
 void switch_running ()
 {
-  sigsetjmp (_RUNNING_thread->env, 1);
+  if (sigsetjmp (_RUNNING_thread->env, 1) != 0)
+  {
+      return;
+  }
   _READY_threads_list.push_back (_RUNNING_thread);
   _RUNNING_thread->_state = READY;
-  void move_next_ready_to_running();
-
+   move_next_ready_to_running();
   // Might need to reset timer every time.
 
 }
@@ -211,11 +219,22 @@ int uthread_init (int quantum_usecs)
   _used_ids[0]->ID = 0;
   _used_ids[0]->_entry_point = nullptr;
   _used_ids[0]->_state = RUNNING;
-  sigsetjmp (_used_ids[0]->env, 1);
+  _used_ids[0]->_num_running_quantums =1;
+  //sigsetjmp (_used_ids[0]->env, 1);
+  //igemptyset (&_used_ids[0]->env->__saved_mask);
+
+//    address_t sp =
+//            (address_t) _used_ids[0]->stack + STACK_SIZE - sizeof (address_t);
+//    address_t pc = (address_t) _used_ids[0]->_entry_point;
+//    sigsetjmp (_used_ids[0]->env, 1);
+//    (_used_ids[0]->env->__jmpbuf)[JB_SP] = translate_address (sp);
+//    (_used_ids[0]->env->__jmpbuf)[JB_PC] = translate_address (pc);
+//    sigemptyset (&_used_ids[0]->env->__saved_mask);
 
   _RUNNING_thread = _used_ids[0];
-
   start_timer ();
+    //sigemptyset(&set);
+    //sigaddset(&set,SIGVTALRM);
   // Need to initialize _READY_threads_list ?
   return 0;
 }
@@ -265,10 +284,6 @@ int release_all ()
     {
       thread = nullptr;
     }
-//  for (auto thread: _BLOCKED_threads_list)
-//    {
-//      thread = nullptr;
-//    }
   _RUNNING_thread = nullptr;
   return 0;
 }
@@ -279,10 +294,10 @@ int release_thread (threadStruct *thread)
     {
       case READY:
         _READY_threads_list.remove (thread);
+            break;
       case RUNNING:
         _RUNNING_thread = nullptr;
-      //case BLOCKED:
-      //_BLOCKED_threads_list.remove (thread);
+            break;
     }
   _used_ids[thread->ID] = nullptr;
   delete (thread);
@@ -297,15 +312,15 @@ int uthread_terminate (int tid)
       release_all ();
       ::exit (0);
     }
-  release_thread(_RUNNING_thread);
+
     if (tid == _RUNNING_thread->ID)
       {
         reset_timer();
         move_next_ready_to_running();
-
         // TODO: return value?
         //https://moodle2.cs.huji.ac.il/nu22/mod/forum/discuss.php?d=67557
       }
+    release_thread(_used_ids[tid]);
 
   return 0;
 
@@ -318,7 +333,8 @@ void move_next_ready_to_running()
   _READY_threads_list.pop_front();
   _RUNNING_thread->_state = RUNNING;
   _RUNNING_thread->_num_running_quantums +=1;
-  siglongjmp (_used_ids[_RUNNING_thread->ID]->env, 1);
+  siglongjmp (_RUNNING_thread->env, 1);
+
 }
 
 /**
@@ -345,13 +361,18 @@ int uthread_block (int tid)
     {
       if (_used_ids[tid]->_state == RUNNING)
         {
-          sigsetjmp (_RUNNING_thread->env, 1);
+          //TODO CHeck
+          if (sigsetjmp (_RUNNING_thread->env, 1) != 0)
+          {
+              return 0;
+          }
           _used_ids[tid]->_state = BLOCKED;
 
           // move the next ready to running
           // inside function that control time
           reset_timer();
           move_next_ready_to_running();
+
 
         }
       else if (_used_ids[tid]->_state == READY)
@@ -415,6 +436,7 @@ int uthread_sleep (int num_quantums)
   sigsetjmp (_RUNNING_thread->env, 1);
   _RUNNING_thread->_state = READY;
   _SLEEP_threads_list.push_back (_RUNNING_thread);
+
   move_next_ready_to_running();
 
 }
