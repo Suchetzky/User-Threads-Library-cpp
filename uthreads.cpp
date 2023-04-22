@@ -74,7 +74,7 @@ typedef struct
     char stack[STACK_SIZE];
     sigjmp_buf env;
     int _num_running_quantums;
-    int sleep_time = 0;
+    int sleep_time = -1;
 
 } threadStruct;
 
@@ -123,26 +123,28 @@ int check_tid (int tid)
 
 void lower_1_from_sleep()
 {
-  for (auto thread : _SLEEP_threads_list)
+  for (auto thread : _used_ids)
     {
-      if (thread->sleep_time == 0)
+        if (thread != nullptr)
         {
-          if (thread->_state == READY)
-            {
-              _READY_threads_list.push_back (thread);
+            thread->sleep_time--;
+            if (thread->sleep_time == 0) {
+                if (thread->_state == READY) {
+                    _READY_threads_list.push_back(thread);
+                }
             }
+
+
         }
-        else
-        {
-          thread->sleep_time --;
-        }
-    }
+
+      }
 }
 
 void timer_handler (int sig)
 {
+
   switch_running ();
-  lower_1_from_sleep();
+
 
 }
 
@@ -191,8 +193,11 @@ void switch_running ()
   {
       return;
   }
-  _READY_threads_list.push_back (_RUNNING_thread);
+    lower_1_from_sleep();
+
+    _READY_threads_list.push_back (_RUNNING_thread);
   _RUNNING_thread->_state = READY;
+
    move_next_ready_to_running();
   // Might need to reset timer every time.
 
@@ -253,6 +258,7 @@ int uthread_spawn (thread_entry_point entry_point)
 {
   if (lowest_id_available () > 99 || entry_point == nullptr)
     {
+      std::cerr << "thread library error: max thread error.\n";
       return -1;
     }
   auto *new_thread = new threadStruct;
@@ -306,21 +312,27 @@ int release_thread (threadStruct *thread)
 
 int uthread_terminate (int tid)
 {
-  check_tid (tid);
+  if (check_tid (tid) !=0)
+  {
+      return -1;
+  }
   if (tid == 0)
     {
       release_all ();
       ::exit (0);
     }
-
-    if (tid == _RUNNING_thread->ID)
+  int cur_running_id = _RUNNING_thread->ID;
+    release_thread(_used_ids[tid]);
+    if (tid == cur_running_id)
       {
         reset_timer();
-        move_next_ready_to_running();
+        lower_1_from_sleep();
+
+          move_next_ready_to_running();
         // TODO: return value?
         //https://moodle2.cs.huji.ac.il/nu22/mod/forum/discuss.php?d=67557
       }
-    release_thread(_used_ids[tid]);
+
 
   return 0;
 
@@ -351,7 +363,10 @@ void move_next_ready_to_running()
 */
 int uthread_block (int tid)
 {
-  check_tid (tid);
+    if(check_tid (tid) != 0)
+    {
+        return -1;
+    }
   if (tid == 0)
     {
       std::cerr << "thread library error: Try to block main thread.\n";
@@ -371,7 +386,9 @@ int uthread_block (int tid)
           // move the next ready to running
           // inside function that control time
           reset_timer();
-          move_next_ready_to_running();
+          lower_1_from_sleep();
+
+            move_next_ready_to_running();
 
 
         }
@@ -396,12 +413,15 @@ int uthread_block (int tid)
 
 int uthread_resume (int tid)
 {
-  check_tid (tid);
+  if(check_tid (tid) != 0)
+  {
+      return -1;
+  }
 
   if (_used_ids[tid]->_state == BLOCKED )
     {
       _used_ids[tid]->_state = READY;
-      if (_used_ids[tid]->sleep_time == 0)
+      if (_used_ids[tid]->sleep_time <= 0)
         {
           _READY_threads_list.push_back (_used_ids[tid]);
         }
@@ -433,11 +453,15 @@ int uthread_sleep (int num_quantums)
       return -1;
     }
   _RUNNING_thread->sleep_time = num_quantums;
-  sigsetjmp (_RUNNING_thread->env, 1);
+  if (sigsetjmp (_RUNNING_thread->env, 1) != 0 )
+  {
+      return 0;
+  }
   _RUNNING_thread->_state = READY;
-  _SLEEP_threads_list.push_back (_RUNNING_thread);
+  //_SLEEP_threads_list.push_back (_RUNNING_thread);
+  reset_timer();
 
-  move_next_ready_to_running();
+    move_next_ready_to_running();
 
 }
 

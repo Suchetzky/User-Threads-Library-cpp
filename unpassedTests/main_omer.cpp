@@ -146,8 +146,8 @@ int test_thread_block_itself(){
     void* temp = malloc(1000);
     void* temp2 = malloc(1000);
     for (int i=0;i<100000;i++){
-        printf("main running: %d\n",uthread_get_quantums(0));
-        printf("%d\n",i);
+        //printf("main running: %d\n",uthread_get_quantums(0));
+        //printf("%d\n",i);
         memcpy(temp,temp2,1000);
     }
     free(temp);
@@ -418,14 +418,16 @@ int test_switch_thread(){
     return 1;
 
 }
+
+// TODO DIDNT WORK ALL
 int main(int argc ,char *argv[]){
 //    test_switch_thread();
-//    test_switch_4_threads();
-//    test_regular_block_resume();
-//    test_sleep();
-//    test_block_and_sleep();
-//    test_sleep_and_block();
-//    test_thread_block_itself();
+//  test_switch_4_threads();
+// test_regular_block_resume();
+//  test_sleep();
+//  test_block_and_sleep();
+//  test_sleep_and_block();
+//  test_thread_block_itself();
 //    test_thread_terminate_itself();
     return 0;
 }
