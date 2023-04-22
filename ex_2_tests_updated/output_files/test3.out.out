@@ -13,3 +13,22 @@ thread library error: the thread id's cell is empty in the threadsArr
 thread library error: the thread id's cell is empty in the threadsArr
 thread library error: quantum_usecs must be positive
 thread library error: quantum_usecs must be positive
+
+
+
+
+hread library error: ID doesn't exists.
+thread library error: ID doesn't exists.
+thread library error: ID doesn't exists.
+thread library error: ID doesn't exists.
+thread library error: ID doesn't exists.
+thread library error: ID doesn't exists.
+thread library error: ID doesn't exists.
+thread library error: ID doesn't exists.
+thread library error: Try to block main thread.
+thread library error: ID doesn't exists.
+thread library error: ID doesn't exists.
+thread library error: ID doesn't exists.
+thread library error: ID doesn't exists.
+thread library error: quantum is non-positive.
+thread library error: quantum is non-positive.

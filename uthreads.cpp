@@ -115,7 +115,7 @@ int check_tid (int tid)
 {
   if (tid < 0 || tid > MAX_THREAD_NUM - 1 || _used_ids[tid] == nullptr)
     {
-      std::cerr << "thread library error: ID doesn't exists.\n";
+      std::cerr << "thread library error: ID doesn't exists or not in bound.\n";
       return -1;
     }
   return 0;
@@ -307,7 +307,11 @@ int release_thread (threadStruct *thread)
 
 int uthread_terminate (int tid)
 {
-  check_tid (tid);
+  if (check_tid (tid) != 0)
+  {
+      return -1;
+  }
+
   if (tid == 0)
     {
       release_all ();
@@ -352,7 +356,10 @@ void move_next_ready_to_running()
 */
 int uthread_block (int tid)
 {
-  check_tid (tid);
+    if (check_tid (tid) != 0)
+    {
+        return -1;
+    }
   if (tid == 0)
     {
       std::cerr << "thread library error: Try to block main thread.\n";
@@ -397,7 +404,10 @@ int uthread_block (int tid)
 
 int uthread_resume (int tid)
 {
-  check_tid (tid);
+    if (check_tid (tid) != 0)
+    {
+        return -1;
+    }
 
   if (_used_ids[tid]->_state == BLOCKED )
     {
