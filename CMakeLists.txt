@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 11)
 
 include_directories(.)
 
-add_executable(TalEliaOs2 uthreads.h uthreads.cpp unpassedTests/ex2tests/test7_no_out_different.cpp)
+add_executable(TalEliaOs2 uthreads.h uthreads.cpp unpassedTests/basic_test.cpp)
 
 #cmake_minimum_required(VERSION 3.1)
 ##set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")

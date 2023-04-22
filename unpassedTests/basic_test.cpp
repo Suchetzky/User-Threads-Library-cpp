@@ -701,10 +701,10 @@ int main()
 //    check_swap();  //ok
 // basic_sleep_check(); // NOT //TODO DO AGAIN
 //  basic_block_check();
-//  get_limit_error();
+  get_limit_error();
 //  check_uthread_get_quantums();
 //   check_uthread_terminate();
- test_deleting_threads(); // Not //TODO DO AGAIN
+// test_deleting_threads(); // Not //TODO DO AGAIN
 // delete_and_make_check(); // Not //TODO DO AGAIN
     return 0;
 }
