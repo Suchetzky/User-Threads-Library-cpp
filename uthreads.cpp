@@ -115,7 +115,7 @@ int check_tid (int tid)
 {
   if (tid < 0 || tid > MAX_THREAD_NUM - 1 || _used_ids[tid] == nullptr)
     {
-      std:: << "thread library error: ID doesn't exists.\n";
+      std::cerr << "thread library error: ID doesn't exists.\n";
       return -1;
     }
   return 0;
