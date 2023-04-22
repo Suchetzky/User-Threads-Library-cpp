@@ -253,6 +253,7 @@ int uthread_spawn (thread_entry_point entry_point)
 {
   if (lowest_id_available () > 99 || entry_point == nullptr)
     {
+      std::cerr << "Thread library error: you reached the max number of threads.\n";
       return -1;
     }
   auto *new_thread = new threadStruct;
