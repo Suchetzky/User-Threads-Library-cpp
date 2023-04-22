@@ -1,3 +1,0 @@
-/cs/usr/suchetzky/os/TalEliaOs2/cmake-build-debug/CMakeFiles/TalEliaOs2.dir
-/cs/usr/suchetzky/os/TalEliaOs2/cmake-build-debug/CMakeFiles/edit_cache.dir
-/cs/usr/suchetzky/os/TalEliaOs2/cmake-build-debug/CMakeFiles/rebuild_cache.dir
