@@ -210,10 +210,10 @@ uthread_terminate id 0
 Process finished with exit code 0
      */
 void basic_sleep_check(){
-    uthread_init(1);
+    uthread_init(100000);
     make_threads(2 , thread1_sleep_check);
-    quantums_to_run(10);
-    printf("uthread_terminate id 0");
+    //quantums_to_run(10);
+    //printf("uthread_terminate id 0");
     uthread_terminate(uthread_get_tid());
 //    int a=  uthread_spawn (thread1_sleep_check);
 //    int b = uthread_spawn (thread2_sleep_check);
@@ -698,13 +698,13 @@ void test_deleting_threads() {
 // by Mor Nahum and Ehud Bartfeld 
 int main()
 {
-//    check_swap();  //ok
-// basic_sleep_check(); //
-//  basic_block_check();
+//   check_swap();  //ok
+ basic_sleep_check(); //
+//basic_block_check();
 // get_limit_error();
-  check_uthread_get_quantums();
-//   check_uthread_terminate();
-// test_deleting_threads(); //
+// check_uthread_get_quantums();
+// check_uthread_terminate();
+ //test_deleting_threads(); //
 // delete_and_make_check(); //
     return 0;
 }

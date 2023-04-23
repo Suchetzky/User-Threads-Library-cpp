@@ -89,6 +89,7 @@ int _count_quantums;
 struct sigaction sa = {0};
 struct itimerval timer;
 sigset_t set;
+sigset_t testSave;
 
 
 //
@@ -101,7 +102,6 @@ int release_all();
 
 void block_unblock(int signal)
 {
-
     // signal is SIG_BLOCK or SIG_UNBLOCK
     if (sigprocmask(signal,&set, nullptr) == -1)
     {
@@ -259,11 +259,13 @@ int uthread_spawn (thread_entry_point entry_point)
 
 int release_all ()
 {
+
   for (auto thread: usedIds)
     {
       if (thread != nullptr) {
+          int id = thread->id;
           delete thread;
-          thread = nullptr;
+          usedIds[id] = nullptr;
       }
     }
   for (auto thread: readyThreadsList)
@@ -360,6 +362,7 @@ int uthread_block (int tid)
         {
           if (sigsetjmp (runningThread->env, 1) != 0)
           {
+              block_unblock(SIG_UNBLOCK);
               return 0;
           }
             usedIds[tid]->_state = BLOCKED;

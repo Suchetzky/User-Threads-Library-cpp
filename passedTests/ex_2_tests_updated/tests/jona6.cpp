@@ -51,6 +51,7 @@ void check_sig_mask(const sigset_t& expected)
         sigprocmask(0, NULL, &actual);
         if (memcmp(&expected, &actual, sizeof(sigset_t)) != 0)
         {
+
             printf(RED "ERROR - sigmask changed\n" RESET);
             exit(1);
         }
