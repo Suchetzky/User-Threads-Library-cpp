@@ -115,7 +115,7 @@ void test_init_errors ()
 void test_switch ()
 {
   flag = 0;
-  uthread_init (1);
+  uthread_init (1*1000000);
   uthread_spawn (&func_a);
   uthread_spawn (&func_b);
   while (flag != 2)
@@ -405,12 +405,12 @@ int test_get_total_quantums ()
 int main (int argc, char *argv[])
 {
 // test_init_errors ();
-//  test_switch ();
+  test_switch ();
 //  test_spawn_errors ();
 //  test_reallocte_id ();
 // test_terminate_error ();
 //  test_block_errors ();
- test_block_and_resume (); // TODO NO
+// test_block_and_resume (); // TODO NO
 // test_resume_errors ();
 //  test_sleep_error ();
 //  test_sleep ();

@@ -39,15 +39,15 @@ int uthread_init (int quantum_usecs);
  * Each thread should be allocated with a stack of size STACK_SIZE bytes.
  * It is an error to call this function with a null entry_point.
  *
- * @return On success, return the ID of the created thread. On failure, return -1.
+ * @return On success, return the id of the created thread. On failure, return -1.
 */
 int uthread_spawn (thread_entry_point entry_point);
 
 /**
- * @brief Terminates the thread with ID tid and deletes it from all relevant
+ * @brief Terminates the thread with id tid and deletes it from all relevant
  * control structures.
  * All the resources allocated by the library for this thread should be released.
- * If no thread with ID tid exists it
+ * If no thread with id tid exists it
  * is considered an error. Terminating the main thread (tid == 0) will result
  * in the termination of the entire
  * process using exit(0) (after releasing the assigned library memory).
@@ -60,25 +60,25 @@ int uthread_spawn (thread_entry_point entry_point);
 int uthread_terminate (int tid);
 
 /**
- * @brief Blocks the thread with ID tid. The thread may be resumed later using uthread_resume.
+ * @brief Blocks the thread with id tid. The thread may be resumed later using uthread_resume.
  *
- * If no thread with ID tid exists it is considered as an error.
+ * If no thread with id tid exists it is considered as an error.
  * In addition, it is an error to try blocking the
  * main thread (tid == 0).
  * If a thread blocks itself, a scheduling decision should be made.
  * Blocking a thread in
- * BLOCKED state has no effect and is not considered an error.
+ * BLOCKED _state has no effect and is not considered an error.
  *
  * @return On success, return 0. On failure, return -1.
 */
 int uthread_block (int tid);
 
 /**
- * @brief Resumes a blocked thread with ID tid and moves it to the READY state.
+ * @brief Resumes a blocked thread with id tid and moves it to the READY _state.
  *
- * Resuming a thread in a RUNNING or READY state has no effect and is not considered
+ * Resuming a thread in a RUNNING or READY _state has no effect and is not considered
  * as an error. If no thread with
- * ID tid exists it is considered an error.
+ * id tid exists it is considered an error.
  *
  * @return On success, return 0. On failure, return -1.
 */
@@ -87,7 +87,7 @@ int uthread_resume (int tid);
 /**
  * @brief Blocks the RUNNING thread for num_quantums quantums.
  *
- * Immediately after the RUNNING thread transitions to the BLOCKED state a scheduling decision should be made.
+ * Immediately after the RUNNING thread transitions to the BLOCKED _state a scheduling decision should be made.
  * After the sleeping time is over, the thread should go back to the end of the READY queue.
  * If the thread which was just RUNNING should also be added to the READY queue, or if multiple threads wake up 
  * at the same time, the order in which they're added to the end of the READY queue doesn't matter.
@@ -100,9 +100,9 @@ int uthread_resume (int tid);
 int uthread_sleep (int num_quantums);
 
 /**
- * @brief Returns the thread ID of the calling thread.
+ * @brief Returns the thread id of the calling thread.
  *
- * @return The ID of the calling thread.
+ * @return The id of the calling thread.
 */
 int uthread_get_tid ();
 
@@ -117,13 +117,13 @@ int uthread_get_tid ();
 int uthread_get_total_quantums ();
 
 /**
- * @brief Returns the number of quantums the thread with ID tid was in RUNNING state.
+ * @brief Returns the number of quantums the thread with id tid was in RUNNING _state.
  *
  * On the first time a thread runs, the function should return 1. Every additional quantum that the thread starts should
- * increase this value by 1 (so if the thread with ID tid is in RUNNING state when this function is called, include
- * also the current quantum). If no thread with ID tid exists it is considered an error.
+ * increase this value by 1 (so if the thread with id tid is in RUNNING _state when this function is called, include
+ * also the current quantum). If no thread with id tid exists it is considered an error.
  *
- * @return On success, return the number of quantums of the thread with ID tid. On failure, return -1.
+ * @return On success, return the number of quantums of the thread with id tid. On failure, return -1.
 */
 int uthread_get_quantums (int tid);
 

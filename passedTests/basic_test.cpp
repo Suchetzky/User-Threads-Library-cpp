@@ -466,7 +466,7 @@ uthread_terminate id 0
 Process finished with exit code 0
  */
 void check_uthread_get_quantums(){
-    uthread_init(1);
+    uthread_init(1*100000);
     int a=  uthread_spawn (thread1_block_check_time);
     int b = uthread_spawn (thread2_block_check_time);
     quantums_to_run(10);
@@ -601,7 +601,7 @@ uthread_terminate id 0
 Process finished with exit code 0
  */
 void delete_and_make_check() {
-    uthread_init(1);
+    uthread_init(1*100000);
     make_threads(MAX_THREAD_TEST - 1, thread2_sleep_check);
     for (int i = 0; i < 2; ++i) {
         check_terminate(1,MAX_THREAD_TEST/2);
@@ -628,7 +628,7 @@ uthread_terminate id 0
 Process finished with exit code 0
  */
 void check_swap(){
-    uthread_init(1);
+    uthread_init(1*100000);
     make_threads(2 , thread1_swap_check);
     quantums_to_run(10);
     printf("uthread_terminate id 0");
@@ -702,7 +702,7 @@ int main()
 // basic_sleep_check(); //
 //  basic_block_check();
 // get_limit_error();
-//  check_uthread_get_quantums();
+  check_uthread_get_quantums();
 //   check_uthread_terminate();
 // test_deleting_threads(); //
 // delete_and_make_check(); //

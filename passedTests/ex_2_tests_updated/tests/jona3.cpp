@@ -84,7 +84,7 @@ int main()
     fflush(stdout);
 
     int q[2] = {10, 20};
-    uthread_init(20);
+    uthread_init(2000000);
     uthread_spawn(run_test);
     uthread_spawn(run_test);
     uthread_spawn(run_test);
