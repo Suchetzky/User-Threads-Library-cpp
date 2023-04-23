@@ -379,9 +379,9 @@ int main ()
 //  std::cout << std::endl << "Test 6" << std::endl;
 //  test_thread_id_management();
 
-//  std::cout << std::endl << "Test 7" << std::endl;
-//  test_5_threads();
-//
+  std::cout << std::endl << "Test 7" << std::endl;
+  test_5_threads();
+
 //  std::cout << std::endl << "Test 8" << std::endl;
 //  test_100_threads();
 

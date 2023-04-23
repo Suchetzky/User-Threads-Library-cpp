@@ -195,7 +195,7 @@ void switch_running ()
   }
     lower_1_from_sleep();
 
-    _READY_threads_list.push_back (_RUNNING_thread);
+  _READY_threads_list.push_back (_RUNNING_thread);
   _RUNNING_thread->_state = READY;
 
    move_next_ready_to_running();
@@ -452,6 +452,7 @@ int uthread_sleep (int num_quantums)
       std::cerr << "thread library error: Try to sleep main thread.\n";
       return -1;
     }
+    lower_1_from_sleep();
   _RUNNING_thread->sleep_time = num_quantums;
   if (sigsetjmp (_RUNNING_thread->env, 1) != 0 )
   {
