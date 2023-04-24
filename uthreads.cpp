@@ -53,27 +53,26 @@ address_t translate_address(address_t addr)
 
 #endif
 
-#define EXTRA = 2;
-#define START_INIT = -1;
-#define EXIT_WITH_FAILURE = 1;
+#define EXTRA 2
+#define SLEEP_INIT -1
+#define EXIT_WITH_FAILURE 1
 #define TIME_FACTOR 1000000
-#define SUCCESS = 0;
-#define FAILURE = -1;
+#define SUCCESS 0
+#define FAILURE -1
 
 
 // Messages
 // System error msg
-#define SYS_ERR_SIGPROCMASK = "system error: sigprocmask failed \n"
-#define SYS_ERR_SETITIMER = "system error: setitimer failed \n"
-#define SYS_ERR_SIGACTION = "system error: sigaction failed \n"
+#define SYS_ERR_SIGPROCMASK "system error: sigprocmask failed \n"
+#define SYS_ERR_SETITIMER "system error: setitimer failed \n"
+#define SYS_ERR_SIGACTION "system error: sigaction failed \n"
 
 // Thread library msg
-#define THREAD_LIB_ERR_ID = "thread library error: id is not valid.\n"
-#define THREAD_LIB_ERR_QUANTUM = "thread library error: quantum most "
-"be positive.\n"
-#define THREAD_LIB_ERR_MAX_THREADS = "thread library error: max thread error.\n"
-#define THREAD_LIB_ERR_BLOCK_MAIN = "thread library error: Try to block main thread.\n"
-#define THREAD_LIB_ERR_SLEEP_MAIN = "thread library error: Try to sleep main thread.\n"
+#define THREAD_LIB_ERR_ID "thread library error: id is not valid.\n"
+#define THREAD_LIB_ERR_QUANTUM "thread library error: quantum most be positive.\n"
+#define THREAD_LIB_ERR_MAX_THREADS "thread library error: max thread error.\n"
+#define THREAD_LIB_ERR_BLOCK_MAIN "thread library error: Try to block main thread.\n"
+#define THREAD_LIB_ERR_SLEEP_MAIN "thread library error: Try to sleep main thread.\n"
 
 
 // Library structs and variables
@@ -91,7 +90,7 @@ typedef struct
     char stack[STACK_SIZE];
     sigjmp_buf env;
     int numRunningQuantums;
-    int sleepTime = START_INIT;
+    int sleepTime = SLEEP_INIT;
 
 } threadStruct;
 
