@@ -55,7 +55,7 @@ address_t translate_address(address_t addr)
 
 #define EXTRA = 2;
 #define START_INIT = -1;
-#define EXIT_FAILURE = 1;
+#define EXIT_WITH_FAILURE = 1;
 #define TIME_FACTOR 1000000
 #define SUCCESS = 0;
 #define FAILURE = -1;
@@ -121,7 +121,7 @@ void block_unblock(int signal)
     {
         std::cerr << SYS_ERR_SIGPROCMASK;
         release_all ();
-        ::exit (EXIT_FAILURE);
+        ::exit (EXIT_WITH_FAILURE);
     }
 }
 
@@ -164,7 +164,7 @@ int reset_timer ()
     {
       std::cerr << SYS_ERR_SETITIMER;
       release_all ();
-      ::exit (EXIT_FAILURE);
+      ::exit (EXIT_WITH_FAILURE);
     }
 }
 
@@ -177,7 +177,7 @@ int start_timer ()
     {
       std::cerr << SYS_ERR_SIGACTION;
       release_all ();
-      ::exit (EXIT_FAILURE);
+      ::exit (EXIT_WITH_FAILURE);
     }
 
   // Configure the timer to expire after 1 sec... */
@@ -193,7 +193,7 @@ int start_timer ()
     {
       std::cerr << SYS_ERR_SETITIMER;
       release_all ();
-      ::exit (EXIT_FAILURE);
+      ::exit (EXIT_WITH_FAILURE);
     }
 }
 
