@@ -1,6 +1,3 @@
-//
-// Created by talsu on 12/04/2023.
-//
 #include "uthreads.h"
 #include <iostream>
 #include <list>
@@ -12,7 +9,7 @@
 #include <sys/time.h>
 using namespace std;
 
-#define TIME_FACTOR 1000000
+
 
 #ifdef __x86_64__
 /* code for 64 bit Intel arch */
@@ -56,9 +53,28 @@ address_t translate_address(address_t addr)
 
 #endif
 
-const int EXTRA = 2;
-const int START_SLEEP = -1;
-const int MAX_ID = 99;
+#define EXTRA = 2;
+#define START_INIT = -1;
+#define EXIT_FAILURE = 1;
+#define TIME_FACTOR 1000000
+#define SUCCESS = 0;
+#define FAILURE = -1;
+
+
+// Messages
+// System error msg
+#define SYS_ERR_SIGPROCMASK = "system error: sigprocmask failed \n"
+#define SYS_ERR_SETITIMER = "system error: setitimer failed \n"
+#define SYS_ERR_SIGACTION = "system error: sigaction failed \n"
+
+// Thread library msg
+#define THREAD_LIB_ERR_ID = "thread library error: id is not valid.\n"
+#define THREAD_LIB_ERR_QUANTUM = "thread library error: quantum most "
+"be positive.\n"
+#define THREAD_LIB_ERR_MAX_THREADS = "thread library error: max thread error.\n"
+#define THREAD_LIB_ERR_BLOCK_MAIN = "thread library error: Try to block main thread.\n"
+#define THREAD_LIB_ERR_SLEEP_MAIN = "thread library error: Try to sleep main thread.\n"
+
 
 // Library structs and variables
 
@@ -75,7 +91,7 @@ typedef struct
     char stack[STACK_SIZE];
     sigjmp_buf env;
     int numRunningQuantums;
-    int sleepTime = START_SLEEP;
+    int sleepTime = START_INIT;
 
 } threadStruct;
 
@@ -92,9 +108,7 @@ sigset_t set;
 sigset_t testSave;
 
 
-//
 int uthread_spawn (thread_entry_point entry_point);
-
 void switch_running ();
 void move_next_ready_to_running();
 int uthread_resume (int tid);
@@ -105,10 +119,9 @@ void block_unblock(int signal)
     // signal is SIG_BLOCK or SIG_UNBLOCK
     if (sigprocmask(signal,&set, nullptr) == -1)
     {
-        //TODO check errors !
-        std::cerr << "block unblock problem\n";
+        std::cerr << SYS_ERR_SIGPROCMASK;
         release_all ();
-        ::exit (0);
+        ::exit (EXIT_FAILURE);
     }
 }
 
@@ -116,10 +129,10 @@ int check_tid (int tid)
 {
   if (tid < 0 || tid > MAX_THREAD_NUM - 1 || usedIds[tid] == nullptr)
     {
-      std::cerr << "thread library error: id doesn't exists.\n";
-      return -1;
+      std::cerr << THREAD_LIB_ERR_ID;
+      return FAILURE;
     }
-  return 0;
+  return SUCCESS;
 }
 
 void lower_1_from_sleep()
@@ -145,12 +158,13 @@ void timer_handler (int sig)
 
 int reset_timer ()
 {
-  // reset the current timer to the interval. check if split ti usec
-  // and sec is necessary
+  // reset the current timer to the interval.
   timer.it_value = timer.it_interval;
   if (setitimer (ITIMER_VIRTUAL, &timer, nullptr))
     {
-      printf ("setitimer error.");
+      std::cerr << SYS_ERR_SETITIMER;
+      release_all ();
+      ::exit (EXIT_FAILURE);
     }
 }
 
@@ -161,43 +175,47 @@ int start_timer ()
   sa.sa_handler = &timer_handler;
   if (sigaction (SIGVTALRM, &sa, nullptr) < 0)
     {
-      printf ("sigaction error.");
+      std::cerr << SYS_ERR_SIGACTION;
+      release_all ();
+      ::exit (EXIT_FAILURE);
     }
 
   // Configure the timer to expire after 1 sec... */
-  timer.it_value.tv_sec = _cur_quantum_secs;        // first time interval, seconds part
-  timer.it_value.tv_usec = _cur_quantum_usecs;        // first time interval, microseconds part
+  timer.it_value.tv_sec = _cur_quantum_secs;  // first time interval
+  timer.it_value.tv_usec = _cur_quantum_usecs;  // first time interval
 
   // configure the timer to expire every 3 sec after that.
-  timer.it_interval.tv_sec = _cur_quantum_secs;    // following time intervals, seconds part
-  timer.it_interval.tv_usec = _cur_quantum_usecs;    // following time intervals, microseconds part
+  timer.it_interval.tv_sec = _cur_quantum_secs; // following time intervals
+  timer.it_interval.tv_usec = _cur_quantum_usecs;  // following time intervals
 
   // Start a virtual timer. It counts down whenever this process is executing.
   if (setitimer (ITIMER_VIRTUAL, &timer, nullptr))
     {
-      printf ("setitimer error.");
+      std::cerr << SYS_ERR_SETITIMER;
+      release_all ();
+      ::exit (EXIT_FAILURE);
     }
 }
 
 void switch_running ()
 {
-    block_unblock(SIG_BLOCK);
+  block_unblock(SIG_BLOCK);
   if (sigsetjmp (runningThread->env, 1) != 0)
   {
       return;
   }
-    lower_1_from_sleep();
+  lower_1_from_sleep();
   readyThreadsList.push_back (runningThread);
-    runningThread->_state = READY;
-   move_next_ready_to_running();
+  runningThread->_state = READY;
+  move_next_ready_to_running();
 }
 
 int uthread_init (int quantum_usecs)
 {
   if (quantum_usecs <= 0)
     {
-      std::cerr << "thread library error: quantum is non-positive.\n";
-      return -1;
+      std::cerr << THREAD_LIB_ERR_QUANTUM;
+      return FAILURE;
     }
   _cur_quantum_usecs = quantum_usecs % TIME_FACTOR;
   _cur_quantum_secs = quantum_usecs / TIME_FACTOR;
@@ -207,17 +225,17 @@ int uthread_init (int quantum_usecs)
     }
   _count_quantums = 1;
 
-    usedIds[0] = new threadStruct;
-    usedIds[0]->id = 0;
-    usedIds[0]->entryPoint = nullptr;
-    usedIds[0]->_state = RUNNING;
-    usedIds[0]->numRunningQuantums = 1;
+  usedIds[0] = new threadStruct;
+  usedIds[0]->id = 0;
+  usedIds[0]->entryPoint = nullptr;
+  usedIds[0]->_state = RUNNING;
+  usedIds[0]->numRunningQuantums = 1;
 
-    runningThread = usedIds[0];
+  runningThread = usedIds[0];
   sigemptyset(&set);
-    sigaddset(&set,SIGVTALRM);
-    start_timer ();
-  return 0;
+  sigaddset(&set,SIGVTALRM);
+  start_timer ();
+  return SUCCESS;
 }
 
 int lowest_id_available ()
@@ -233,11 +251,11 @@ int lowest_id_available ()
 int uthread_spawn (thread_entry_point entry_point)
 {
     block_unblock(SIG_BLOCK);
-  if (lowest_id_available () > MAX_ID || entry_point == nullptr)
+  if (lowest_id_available () > MAX_THREAD_NUM - 1 || entry_point == nullptr)
     {
-      std::cerr << "thread library error: max thread error.\n";
-        block_unblock(SIG_UNBLOCK);
-      return -1;
+      std::cerr << THREAD_LIB_ERR_MAX_THREADS;
+      block_unblock(SIG_UNBLOCK);
+      return FAILURE;
     }
   auto *new_thread = new threadStruct;
   new_thread->entryPoint = entry_point;
@@ -259,7 +277,6 @@ int uthread_spawn (thread_entry_point entry_point)
 
 int release_all ()
 {
-
   for (auto thread: usedIds)
     {
       if (thread != nullptr) {
@@ -272,66 +289,67 @@ int release_all ()
     {
       thread = nullptr;
     }
-    runningThread = nullptr;
-  return 0;
+  runningThread = nullptr;
+  return SUCCESS;
 }
 
 int release_thread (threadStruct *thread)
 {
   switch (thread->_state)
     {
+
       case READY:
         readyThreadsList.remove (thread);
-            break;
+        break;
       case RUNNING:
-          runningThread = nullptr;
-            break;
+        runningThread = nullptr;
+        break;
     }
-    usedIds[thread->id] = nullptr;
+  usedIds[thread->id] = nullptr;
   delete (thread);
-  return 0;
+  return SUCCESS;
 }
 
 int uthread_terminate (int tid)
 {
-    block_unblock(SIG_BLOCK);
-  if (check_tid (tid) !=0)
+  block_unblock(SIG_BLOCK);
+  if (check_tid (tid) != 0)
   {
       block_unblock(SIG_UNBLOCK);
-      return -1;
+      return FAILURE;
   }
   if (tid == 0)
     {
       release_all ();
-      ::exit (0);
+      ::exit (SUCCESS);
     }
   int cur_running_id = runningThread->id;
-    release_thread(usedIds[tid]);
-    if (tid == cur_running_id)
-      {
-        reset_timer();
-        lower_1_from_sleep();
-        move_next_ready_to_running();
-      }
-    block_unblock(SIG_UNBLOCK);
-  return 0;
+  release_thread(usedIds[tid]);
+  if (tid == cur_running_id)
+    {
+      reset_timer();
+      lower_1_from_sleep();
+      move_next_ready_to_running();
+    }
+  block_unblock(SIG_UNBLOCK);
+  return SUCCESS;
 
 }
 
 void move_next_ready_to_running()
 {
-    //block_unblock(SIG_BLOCK);
   _count_quantums ++;
-    runningThread = readyThreadsList.front();
+  runningThread = readyThreadsList.front();
   readyThreadsList.pop_front();
-    runningThread->_state = RUNNING;
-    runningThread->numRunningQuantums +=1;
-    block_unblock(SIG_UNBLOCK);
+  runningThread->_state = RUNNING;
+  runningThread->numRunningQuantums +=1;
+  block_unblock(SIG_UNBLOCK);
   siglongjmp (runningThread->env, 1);
 }
 
 /**
- * @brief Blocks the thread with id tid. The thread may be resumed later using uthread_resume.
+ * @brief Blocks the thread with id tid. The thread may be resumed later using
+ * uthread_resume.
  *
  * If no thread with id tid exists it is considered as an error.
  * In addition, it is an error to try blocking the
@@ -348,13 +366,13 @@ int uthread_block (int tid)
     if(check_tid (tid) != 0)
     {
         block_unblock(SIG_UNBLOCK);
-        return -1;
+        return FAILURE;
     }
     if (tid == 0)
     {
-        std::cerr << "thread library error: Try to block main thread.\n";
+        std::cerr << THREAD_LIB_ERR_BLOCK_MAIN;
         block_unblock(SIG_UNBLOCK);
-        return -1;
+        return FAILURE;
     }
   if (usedIds[tid]->_state != BLOCKED)
     {
@@ -363,24 +381,22 @@ int uthread_block (int tid)
           if (sigsetjmp (runningThread->env, 1) != 0)
           {
               block_unblock(SIG_UNBLOCK);
-              return 0;
+              return SUCCESS;
           }
-            usedIds[tid]->_state = BLOCKED;
+          usedIds[tid]->_state = BLOCKED;
 
-          // move the next ready to running
-          // inside function that control time
           reset_timer();
           lower_1_from_sleep();
-            move_next_ready_to_running();
+          move_next_ready_to_running();
         }
       else if (usedIds[tid]->_state == READY)
         {
-            usedIds[tid]->_state = BLOCKED;
+          usedIds[tid]->_state = BLOCKED;
           readyThreadsList.remove (usedIds[tid]);
         }
     }
-    block_unblock(SIG_UNBLOCK);
-  return 0;
+  block_unblock(SIG_UNBLOCK);
+  return SUCCESS;
 }
 
 /**
@@ -395,34 +411,39 @@ int uthread_block (int tid)
 
 int uthread_resume (int tid)
 {
-    block_unblock(SIG_BLOCK);
+  block_unblock(SIG_BLOCK);
   if(check_tid (tid) != 0)
   {
       block_unblock(SIG_UNBLOCK);
-      return -1;
+      return FAILURE;
   }
 
   if (usedIds[tid]->_state == BLOCKED )
     {
-        usedIds[tid]->_state = READY;
+      usedIds[tid]->_state = READY;
       if (usedIds[tid]->sleepTime <= 0)
         {
           readyThreadsList.push_back (usedIds[tid]);
         }
     }
-    block_unblock(SIG_UNBLOCK);
-  return 0;
+  block_unblock(SIG_UNBLOCK);
+  return SUCCESS;
 }
 
 
 /**
  * @brief Blocks the RUNNING thread for num_quantums quantums.
  *
- * Immediately after the RUNNING thread transitions to the BLOCKED _state a scheduling decision should be made.
- * After the sleeping time is over, the thread should go back to the end of the READY queue.
- * If the thread which was just RUNNING should also be added to the READY queue, or if multiple threads wake up
- * at the same time, the order in which they're added to the end of the READY queue doesn't matter.
- * The number of quantums refers to the number of times a new quantum starts, regardless of the reason. Specifically,
+ * Immediately after the RUNNING thread transitions to the BLOCKED _state a
+ * scheduling decision should be made.
+ * After the sleeping time is over, the thread should go back to the end of the
+ * READY queue.
+ * If the thread which was just RUNNING should also be added to the READY queue,
+ * or if multiple threads wake up
+ * at the same time, the order in which they're added to the end of the READY
+ * queue doesn't matter.
+ * The number of quantums refers to the number of times a new quantum starts,
+ * regardless of the reason. Specifically,
  * the quantum of the thread which has made the call to uthread_sleep isn’t counted.
  * It is considered an error if the main thread (tid == 0) calls this function.
  *
@@ -431,25 +452,24 @@ int uthread_resume (int tid)
 
 int uthread_sleep (int num_quantums)
 {
-    block_unblock(SIG_BLOCK);
+  block_unblock(SIG_BLOCK);
   if (runningThread->id == 0 )
     {
-      std::cerr << "thread library error: Try to sleep main thread.\n";
-        block_unblock(SIG_UNBLOCK);
-      return -1;
+      std::cerr << THREAD_LIB_ERR_SLEEP_MAIN;
+      block_unblock(SIG_UNBLOCK);
+      return FAILURE;
     }
-    lower_1_from_sleep();
-    runningThread->sleepTime = num_quantums;
+  lower_1_from_sleep();
+  runningThread->sleepTime = num_quantums;
   if (sigsetjmp (runningThread->env, 1) != 0 )
   {
-      return 0;
+      return SUCCESS;
   }
-    runningThread->_state = READY;
-  //_SLEEP_threads_list.push_back (runningThread);
+  runningThread->_state = READY;
   reset_timer();
   move_next_ready_to_running();
-    block_unblock(SIG_UNBLOCK);
-    return 1;
+  block_unblock(SIG_UNBLOCK);
+  return SUCCESS;
 }
 
 int uthread_get_tid ()
@@ -464,12 +484,12 @@ int uthread_get_total_quantums ()
 
 int uthread_get_quantums (int tid)
 {
-    block_unblock(SIG_BLOCK);
+  block_unblock(SIG_BLOCK);
   if (check_tid (tid) != 0)
     {
-      return -1;
+      return FAILURE;
     }
-    block_unblock(SIG_UNBLOCK);
+  block_unblock(SIG_UNBLOCK);
   return usedIds[tid]->numRunningQuantums;
 }
 
