@@ -1,17 +1,11 @@
-suchetzky, eliamerran
-Tal Suchetzky (208562983), Elia Merran (209422831)
-EX: 2
 
-FILES:
+# Main purpose
+The User Threads Library is a C++ library that provides a lightweight and efficient mechanism for managing and executing
+user-level threads in a concurrent programming environment. This library, which I have written with Elia Merran, allows developers to create
+and manage multiple threads of execution within a single process, enabling concurrent and parallel execution of tasks.
 
 
-REMARKS:
--
-
-ANSWERS:
-
-Assigment 1:
-
+# Extra
 1.
  a.1
 int sigsetjmp(sigjmp_buf env, int savemask) - This function saves the current
